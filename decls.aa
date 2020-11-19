@@ -1,0 +1,68 @@
+// parameters
+$parameter IPIPE_DEPTH  2
+$parameter OPIPE_DEPTH  2
+
+$parameter PACKET_LENGTH_IN_WORDS  64
+$parameter OBUF_DEPTH_IN_PACKETS    2
+$parameter INPUT_PORT_PIPELINE_DEPTH 7
+$parameter OUTPUT_PORT_PIPELINE_DEPTH 7
+
+// Lets get the FIFO's declared
+
+// input pipes
+$pipe in_data_1: $uint<32> $depth IPIPE_DEPTH
+$pipe in_data_2: $uint<32> $depth IPIPE_DEPTH
+//////////////////////////////Added the input pipes here....
+$pipe in_data_3: $uint<32> $depth IPIPE_DEPTH
+$pipe in_data_4: $uint<32> $depth IPIPE_DEPTH
+//////////////////////////////Till here...........
+
+// output pipes.
+$pipe out_data_1: $uint<32> $depth OPIPE_DEPTH
+$pipe out_data_2: $uint<32> $depth OPIPE_DEPTH
+/////////////////////////////Added the output pipes here........
+$pipe out_data_3: $uint<32> $depth OPIPE_DEPTH
+$pipe out_data_4: $uint<32> $depth OPIPE_DEPTH
+///////////////////////////////////////Till here.......
+
+
+// output buffering pipes
+// top bit is valid-bit.
+$noblock $pipe noblock_obuf_1_1 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_1_2 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+/////////////////////////////////Added the buffer1 additional here.............
+$noblock $pipe noblock_obuf_1_3 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_1_4 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+//////////////////////////////////////Till here..........
+
+$noblock $pipe noblock_obuf_2_1 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_2_2 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+/////////////////////////////////Added the buffer2 additional here.............
+$noblock $pipe noblock_obuf_2_3 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_2_4 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+//////////////////////////////////////Till here..........
+
+/////////////////////////////////Added the buffer3 here.............
+$noblock $pipe noblock_obuf_3_1 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_3_2 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_3_3 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_3_4 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+//////////////////////////////////////Till here..........
+
+/////////////////////////////////Added the buffer4 here.............
+$noblock $pipe noblock_obuf_4_1 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_4_2 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_4_3 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+$noblock $pipe noblock_obuf_4_4 : $uint<33> $depth  { OBUF_DEPTH_IN_PACKETS * PACKET_LENGTH_IN_WORDS }
+//////////////////////////////////////Till here..........
+// useful constants
+$constant ZERO_1: $uint<1> := 0
+$constant ONE_1: $uint<1> := 1
+$constant ZERO_2: $uint<2> := 0
+$constant ONE_2: $uint<2> := 1
+$constant ZERO_3: $uint<3> := 0
+$constant ONE_3: $uint<3> := 1
+$constant ZERO_8: $uint<8> := 0
+$constant ONE_8: $uint<8> := 1
+$constant ZERO_33: $uint<33> := 0
+$constant ONE_33: $uint<33> := 1

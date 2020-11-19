@@ -1,0 +1,79 @@
+$volatile $module [prioritySelect]
+	$in (down_counter: $uint<8> active_packet: $uint<3>
+			priority: $uint<3>  p1_valid p2_valid p3_valid p4_valid: $uint<1>)
+	$out (next_active_packet: $uint<3> next_priority: $uint<3>)
+$is
+//
+// if down_counter is 0, then it is time to decide which should be
+// the new active packet.
+{
+	d0 := (down_counter == 0)
+	select_1 := ($reduce &
+			d0
+			p1_valid
+			( $reduce |
+			(priority == 1)
+			( $reduce & (~p2_valid) (~p3_valid) (~p4_valid))
+			( $reduce & (~p4_valid) (priority == 4))
+			( $reduce & (~p3_valid) (~p4_valid) (priority == 3))))
+
+
+	select_2 := ($reduce &
+			d0
+			p2_valid
+			( $reduce |
+			(priority == 2)
+			( $reduce & (~p1_valid) (~p3_valid) (~p4_valid))
+			( $reduce & (~p1_valid) (priority == 1))
+			( $reduce & (~p4_valid) (~p1_valid) (priority == 4))))
+
+
+	select_3 := ($reduce &
+			d0
+			p3_valid
+			( $reduce |
+			(priority == 3)
+			( $reduce & (~p1_valid) (~p2_valid) (~p4_valid))
+			( $reduce & (~p2_valid) (priority == 2))
+			( $reduce & (~p1_valid) (~p2_valid) (priority == 1))))
+
+
+	select_4 := ($reduce &
+			d0
+			p4_valid
+			( $reduce |
+			(priority == 4)
+			( $reduce & (~p1_valid) (~p2_valid) (~p3_valid))
+			( $reduce & (~p3_valid) (priority == 3))
+			( $reduce & (~p2_valid) (~p3_valid) (priority == 2))))
+
+	next_active_packet := ($excmux
+					(~d0)	active_packet
+					select_1 1
+					select_2 2
+					select_3 3
+					select_4 4
+				)
+
+	//$rreport ( ##OUTPUTPORTDAEMON RUN_1 d0 select_1 select_2 select_3 select_4 priority p1_valid p2_valid p3_valid p4_valid active_packet next_active_packet)
+
+
+	next_priority_temp := ($excmux
+					select_1 2
+					select_2 3
+					select_3 4
+					select_4 1
+				)
+
+	// priority rotates on every selection.
+	next_priority := ($mux ($reduce |
+							select_1
+							select_2
+							select_3
+							select_4)
+						    next_priority_temp
+							priority)
+
+	//$rreport( ##OUTPUTPORTDAEMON RUN_2 next_priority)
+
+}
