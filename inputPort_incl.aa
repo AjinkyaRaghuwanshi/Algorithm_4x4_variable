@@ -110,6 +110,7 @@ $module [ ##INPUTPORTDAEMON ]
 			$rreport ( ##INPUTPORTDAEMON   write_status send_to_1 send_to_2 send_to_3 send_to_4 data_to_outport new_packet
 						last_dest_id next_last_dest_id count_down)
 
+		// Keep this running forever 
 		$while 1
 	}
 }
