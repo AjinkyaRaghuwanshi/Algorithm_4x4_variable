@@ -1,11 +1,11 @@
 // parameters
-$parameter IPIPE_DEPTH  2
-$parameter OPIPE_DEPTH  2
+$parameter IPIPE_DEPTH  4
+$parameter OPIPE_DEPTH  4
 
-$parameter PACKET_LENGTH_IN_WORDS  64
-$parameter OBUF_DEPTH_IN_PACKETS    2
-$parameter INPUT_PORT_PIPELINE_DEPTH 7
-$parameter OUTPUT_PORT_PIPELINE_DEPTH 7
+$parameter PACKET_LENGTH_IN_WORDS  128
+$parameter OBUF_DEPTH_IN_PACKETS    4
+$parameter INPUT_PORT_PIPELINE_DEPTH 14
+$parameter OUTPUT_PORT_PIPELINE_DEPTH 14
 
 // Lets get the FIFO's declared
 
