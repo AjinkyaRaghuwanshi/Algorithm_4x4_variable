@@ -1,10 +1,19 @@
+// Here creating the input Daemon that will continuously take the 
+// data from the input and will sort the data according to the
+// destination.
 #define INPUTPORTDAEMON   inputPort_1_Daemon
+// Defining the input port for the incoming data
 #define INPUT_PORT	  in_data_1
+// Defining the non-blocking buffer for the input
+// so as to send the data as zero even if the incoming 
+// data is invalid
 #define NOBLOCKOBUF_TO_1  noblock_obuf_1_1
 #define NOBLOCKOBUF_TO_2  noblock_obuf_1_2
 #define NOBLOCKOBUF_TO_3  noblock_obuf_1_3
 #define NOBLOCKOBUF_TO_4  noblock_obuf_1_4
+// including the input port.
 #include inputPort_incl.aa
+
 
 #define INPUTPORTDAEMON   inputPort_2_Daemon
 #define INPUT_PORT	  in_data_2
@@ -14,7 +23,6 @@
 #define NOBLOCKOBUF_TO_4  noblock_obuf_2_4
 #include inputPort_incl.aa
 
-//////////////////////////////////////Added the input from here...........
 #define INPUTPORTDAEMON   inputPort_3_Daemon
 #define INPUT_PORT	  in_data_3
 #define NOBLOCKOBUF_TO_1  noblock_obuf_3_1
@@ -34,13 +42,20 @@
 
 /////////////////////////////////////////Till here...........
 
-
+// Here creating the output Daemon that will continuously take the 
+// data from the output buffer and will send the data according to the
+// priority and the valid bits.
 #define OUTPUTPORTDAEMON   outputPort_1_Daemon
+// Defining the non-blocking buffer for the output
+// so as to send the data as zero even if the incoming 
+// data is invalid
 #define NOBLOCKOBUF_FROM_1 noblock_obuf_1_1
 #define NOBLOCKOBUF_FROM_2 noblock_obuf_2_1
 #define NOBLOCKOBUF_FROM_3 noblock_obuf_3_1
 #define NOBLOCKOBUF_FROM_4 noblock_obuf_4_1
+// Defining the output port for the outgoing data
 #define OUTPUT_PORT	   out_data_1
+// including the output port.
 #include outputPort_incl.aa
 
 #define OUTPUTPORTDAEMON   outputPort_2_Daemon
@@ -51,7 +66,6 @@
 #define OUTPUT_PORT	   out_data_2
 #include outputPort_incl.aa
 
-/////////////////////////////////////////////Added the output from here............
 #define OUTPUTPORTDAEMON   outputPort_3_Daemon
 #define NOBLOCKOBUF_FROM_1 noblock_obuf_1_3
 #define NOBLOCKOBUF_FROM_2 noblock_obuf_2_3
@@ -67,5 +81,3 @@
 #define NOBLOCKOBUF_FROM_4 noblock_obuf_4_4
 #define OUTPUT_PORT	   out_data_4
 #include outputPort_incl.aa
-
-///////////////////////////////////////////////Till here...............
