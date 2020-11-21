@@ -1,50 +1,40 @@
-// GENERIC with MACROS
-//   INPUTPORTDAEMON
-//   INPUT_PORT
-//   NOBLOCKOBUF_TO_1
-//   NOBLOCKOBUF_TO_2
-//   NOBLOCKOBUF_TO_3
-//   NOBLOCKOBUF_TO_4
+// Now here creating a daemon to work at the input with the normal queues and non-blocking buffers for input data collection
 $module [ ##INPUTPORTDAEMON ]
 	$in () $out () $is
 {
 	$branchblock[loop] {
-
-//
-		//  These two are circulating values...
-		//
-		//  count_down = 0;
-		//  last_dest_id = 0;
-		//
-		//
-		//  while(1) {
-		//       input_word = read_uint32("in_data_1");
-		//       new_packet = (count_down == 0);
-		//
-		//       dest_id, pkt_length, seq_id = splitWord(input_word);
-		//       count_down =   (new_packet ? pkt_length-1 : count_down-1);
-		//
-		//       last_dest_id = (new_packet ? dest_id : last_dest_id);
-		//       send_to_1    = (last_dest_id == 1);
-		//       if(send_to_1)
-		//            write_uint32("obuf_1_1", input_word);
-		//       send_to_2    = (last_dest_id == 2);
-		//       if(send_to_2)
-		//            write_uint32("obuf_1_2", input_word);
-		//  }
-
+		
+		// Declaring a pipeline at the input with the length as INPUT_PORT_PIPELINE_DEPTH
+		// And using it to continuously run to recieve the data at the inputs.
 		$dopipeline $depth INPUT_PORT_PIPELINE_DEPTH
 				$fullrate
-
+			
+			// Now creating a block to initialize and to further work on the count_down 
+			// (i.e a counter so as to count the number of words read uptill now )
+			// and last_dest_id(i.e so as to remember the last location or the port where
+			// the data was written to and to be used for recollecting during a complete
+			// packet transfer) 
 			$merge $entry $loopback
+			
+				// setting the counter(i.e count_down) to zero or (counter--) at 
+				// every transaction
 				$phi count_down   :=
 						($bitcast ($uint<16>) 0) $on $entry
 							next_count_down $on $loopback
+				
+				// Recieving the word from the input into the input_word
 				$phi input_word   := ##INPUT_PORT $on $entry, $loopback
+				
+				// Changing the last destination ID if there is need to change the 
+				// current location where the previous data was going.
+				// Initializing the destination to which the data was sent
+				// from zero to the next data location
 				$phi last_dest_id :=  0 $on $entry next_last_dest_id
 								$on $loopback
 			$endmerge
 
+			// Printing out the message at the console so as to know what was 
+			// the recieved input word.
 			$rreport ( ##INPUTPORTDAEMON   received_input_word input_word)
 			//
 			// volatile means that new_packet does not need
@@ -52,43 +42,71 @@ $module [ ##INPUTPORTDAEMON ]
 			//
 			// compiler can make this a combinational circuit.
 			//
+			// Now creating the condition if there is new package or not
 			$volatile new_packet := (count_down == 0)
-
+			
+			// Now spliting the input word into 3 different words
+			// destination ID (i.e dest_id) , packet length (pkt_length)
+			// and input ID (i.e seq_id the location where the input 
+			// is coming from)
 			$volatile $split (input_word 8 16 8)
 						(dest_id pkt_length seq_id)
+						
+			// Checking if a new packet has started or not
 			$guard (new_packet)
+				
+				//if a new packet has started print out the details about it 
 				$rreport ( ##INPUTPORTDAEMON new_packet_summary dest_id pkt_length seq_id)
 
+			// Decrementing the down counter
 			$volatile next_count_down :=
 				($mux new_packet (pkt_length - 1) (count_down - 1))
 
+			// Selecting the next destination ID to be the previously used destination 
+			// ID or the new destination ID if a new packet has started
 			$volatile next_last_dest_id :=
 					($mux new_packet dest_id last_dest_id)
 
-			// add valid bit for noblock.
+			// adding a valid bit for the non-blocking buffer so as to determine if there is a 
+			// data that is zero recieved at the input.
 			$volatile data_to_outport := ($concat ONE_1 input_word)
 
+			// Checking where to send the data to which location
+			// based on the address loaction
+			
+			// If the last destination ID is 1 then set the data to 1 to be true.
 			$volatile send_to_1 := (next_last_dest_id == 1)
+			
+			// Checking the condition for the destination ID to be 1
 			$guard (send_to_1)
+				//if the condition is true the send the data to the output buffer 1
 				##NOBLOCKOBUF_TO_1 := data_to_outport
 
+			// If the last destination ID is 2 then set the data to 2 to be true.
 			$volatile send_to_2 := (next_last_dest_id == 2)
+			
+			// Checking the condition for the destination ID to be 2
 			$guard (send_to_2)
+				//if the condition is true the send the data to the output buffer 2
 				##NOBLOCKOBUF_TO_2 := data_to_outport
 
-			///////////////////////////////////////////////////////////////////////// Added below for port 3 and port4
+			// If the last destination ID is 3 then set the data to 3 to be true.
 			$volatile send_to_3 := (next_last_dest_id == 3)
+			
+			// Checking the condition for the destination ID to be 3
 			$guard (send_to_3)
+				//if the condition is true the send the data to the output buffer 3
 				##NOBLOCKOBUF_TO_3 := data_to_outport
 
+			// If the last destination ID is 4 then set the data to 4 to be true.
 			$volatile send_to_4 := (next_last_dest_id == 4)
+			
+			// Checking the condition for the destination ID to be 4
 			$guard (send_to_4)
+				//if the condition is true the send the data to the output buffer 4
 				##NOBLOCKOBUF_TO_4 := data_to_outport
 
-
-
-			////////////////////////////////////////////////////////////////////////Till above, below also editted the report to include the send to 3 and 4
-
+			// Now printing the followng along with their values at output on the console 
 			$rreport ( ##INPUTPORTDAEMON   write_status send_to_1 send_to_2 send_to_3 send_to_4 data_to_outport new_packet
 						last_dest_id next_last_dest_id count_down)
 
