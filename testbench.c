@@ -60,32 +60,39 @@ int __err_flag__ = 0;
 void input_port_core(int port_id)
 {
 	//uint32_t send_buffer[PACKET_LENGTH_IN_WORDS];   
-
+	// variable to track the current word in the packet
 	int i;
 	
+	// Length of the packet
 	int PACKET_LENGTH_IN_WORDS_RANDOM_INPUT;
-
+	
 	srand(time(0));
 	
 	// Sequence Id based on the port they come from..
+	// setting the seq_id from port_id
 	uint8_t seq_id = port_id;
 		
 	while(1)
 	{
-
+		// Length of packet wii be taken at random
 		PACKET_LENGTH_IN_WORDS_RANDOM_INPUT = ((rand() & 0x3F) + 1);
 
+		// Creating a buffer to set the variable packet length 
 		uint32_t send_buffer[PACKET_LENGTH_IN_WORDS_RANDOM_INPUT];
 
+		// Sending data at the receiving input 
 		for(i = 0; i < PACKET_LENGTH_IN_WORDS_RANDOM_INPUT; i++)
 		{
 			send_buffer[i] = i;
 		}
 
 
+		// Now, further deciding the destination port here 
 		int dest_port =  -1;
 		if(port_id == 1)
-		{	dest_port =     
+		{	// Taking the random value between 0 to 3
+			// OR the destination as the current input port
+			dest_port =     
 				(tb_config.input_port_1_random_dest_flag ? ((rand() & 0x3)+1) :  
 					tb_config.input_port_1_destination_port);
 		}
@@ -107,10 +114,15 @@ void input_port_core(int port_id)
 				(tb_config.input_port_4_random_dest_flag ? ((rand() & 0x3)+1) :  
 					tb_config.input_port_4_destination_port);
 		}
-
+		
+		
+		// Now creating input data as packet
 		if((dest_port == 1) || (dest_port == 2) || (dest_port == 3) || (dest_port == 4))
 		{
+			// creating the packet 0 from the send_buffer 
+			// made by giving the destination port, packet length and the input port where the data came from.
 			send_buffer[0] = (dest_port << 24) | ( PACKET_LENGTH_IN_WORDS_RANDOM_INPUT << 8) | seq_id;
+			// Now, writing the input data to the model
 			if(port_id == 1)
 				write_uint32_n ("in_data_1", send_buffer, PACKET_LENGTH_IN_WORDS_RANDOM_INPUT);
 			else if (port_id == 2)
@@ -124,7 +136,7 @@ void input_port_core(int port_id)
 	}
 }
 
-
+// Creating the input data sender thread to continuously send data to the input
 void input_port_1_sender ()
 {
 	input_port_core(1);
@@ -149,17 +161,21 @@ void input_port_4_sender ()
 }
 DEFINE_THREAD(input_port_4_sender);
 
-
+// Now creating the output dat handler to read the data and verify it
 void output_port_core(int port_id)
 {
+	// Here creating the packet counter to catch any potential packet mismatch
 	int PCOUNT = 0;
+	// Now here initializing any error detector
 	int err = 0;
+	// now creating the current word number holder
 	int j;
 	while(1)
 	{
-		
+		// now, creating a variable to read the header of the packets
 		uint32_t header[1];
-
+		
+		// Reading the first header
 		if(port_id == 1)
 			read_uint32_n ("out_data_1", header, 1);
 		else if(port_id == 2)
@@ -169,13 +185,16 @@ void output_port_core(int port_id)
 		else
 			read_uint32_n ("out_data_4", header, 1);
 
+		// Now removing the length of the packet from the 0th word
+		// for further use in the reading of the packet at the output
 		int PACKET_LENGTH_IN_WORDS_RANDOM_OUTPUT = (((1 << 8) - 1) & ( header[0] >> 8 ));
 
 
+		// Now creating a new variable as packet to store the current packet
 		uint32_t packet[PACKET_LENGTH_IN_WORDS_RANDOM_OUTPUT];
 		uint32_t dummy_packet[PACKET_LENGTH_IN_WORDS_RANDOM_OUTPUT - 1];
 
-		
+		// Now reading the incoming packets and increamentingthe current word count
 		if(port_id == 1)
 			read_uint32_n ("out_data_1", dummy_packet, PACKET_LENGTH_IN_WORDS_RANDOM_OUTPUT - 1);
 		else if(port_id == 2)
@@ -185,40 +204,53 @@ void output_port_core(int port_id)
 		else
 			read_uint32_n ("out_data_4", dummy_packet, PACKET_LENGTH_IN_WORDS_RANDOM_OUTPUT - 1);
 		PCOUNT++;
-
+		
+		// Now writing the packet0 array from the header of the incoming packet
 		packet[0] = header[0];
 
+		// Now taking the data from the current packet holder and moving to the final output packet
 		for( j = 0; j < PACKET_LENGTH_IN_WORDS_RANDOM_OUTPUT - 1; j++)
 		{
 			packet[j+1] = dummy_packet[j];
 		}
 
+		// Now finding the destination ID so as to check the correctness of the packet
 		int dest = (packet[0] >> 24);
 
-		//Here to identify input port, I am using seq_id i.e last 3 bits
+		// Now finding the input port of the recieved packet
 		int input_port = (packet[0] & 0x7); 
 		
 		
 		//
 		// check the destination?
 		//
+		
+		// Now checking if the destination ID of the sent packet at the sender and the reciever are 
+		// same so as to check the legitimacy of the packet
+		// if the port are not same then their is a error the is to be reported out 
+		// at the console
 		if(dest != port_id)
 		{
 			fprintf(stderr,"Error: at port %d, packet number %d from input port %d,"
-					" destination mismatch!\n",     port_id, PCOUNT, input_port);
+					" destination mismatch!\n", port_id, PCOUNT, input_port);
 			err = 1;
 		}
 		else
 		{
+			// if there is no error then we print the recieved data about the packet
 			fprintf(stderr,"\nRx[%d] at output port %d from input port %d. Packet Length %d\n", 
 					PCOUNT, port_id, input_port, PACKET_LENGTH_IN_WORDS_RANDOM_OUTPUT);
 		}
 
 
 		// check integrity of the packet.
+		
+		// Now to check the integrity of the packet we compare it with the packet sent at the input
 		int I; 
 		for(I=1; I < PACKET_LENGTH_IN_WORDS_RANDOM_OUTPUT; I++)
 		{
+			// if there is a mismatch then
+			// it is setting the error flag
 			if (packet[I] != I)
 			{
 				fprintf(stderr,"\nError: packet[%d]=%d, expected %d.\n",
@@ -227,6 +259,7 @@ void output_port_core(int port_id)
 			}
 		}
 
+		// If the error flag is set to 1 then the loop is broken
 		if(err)
 		{
 			__err_flag__ = 1;
@@ -236,6 +269,7 @@ void output_port_core(int port_id)
 
 }
 
+// Now creating the output reciever thread to continuously recieve the data from the output of the switch 
 void output_port_1_receiver ()
 {
 	output_port_core(1);
@@ -266,13 +300,15 @@ int main(int argc, char* argv[])
 
 	if(argc < 3)
 	{
-		/////////////// Asking for which type of packet transfer
+		// Asking for which type of packet transfer
 		fprintf(stderr,"Usage: %s [trace-file] [test_type] \n trace-file=null for no trace, stdout for stdout\n" "test_type = 1to1/1to2/1to3/1to4/1toall/2to1/2to2/2to3/2to4/2toall/3to1/3to2/3to3/3to4/3toall/4to1/4to2/4to3/4to4/4toall/alltoall\n",
 				argv[0]);
 		return(1);
 	}
 
+	// creating the file pointer
 	FILE* fp = NULL;
+	// creating the trace file writer
 	if(strcmp(argv[1],"stdout") == 0)
 	{
 		fp = stdout;
@@ -287,6 +323,8 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	// Now creating the variables to store the input recived from the user to 
+	// which type of mode of transfer does the user wants to use.
 	int __1to1 = (strcmp(argv[2],"1to1") == 0);
 	int __1to2 = (strcmp(argv[2],"1to2") == 0);
 	int __1to3 = (strcmp(argv[2],"1to3") == 0);
@@ -321,8 +359,13 @@ int main(int argc, char* argv[])
 	//  both input ports active, send
 	//  randomly to output ports.
 	
+	
+	// Now taking the input from the user for the kind of data transfer is required by it.
+	// If the setting the input port of the below varaible to active if the condition below is fulfilled
 	tb_config.input_port_1_active = (__1to1 || __1to2  || __1to3 || __1to4 || __1toall || __alltoall);
+	// Now setting the output port if the user requires it to be random
 	tb_config.input_port_1_random_dest_flag = (__1toall || __alltoall);
+	// Now setting the output port if the user defines it to be from the below given choices
 	tb_config.input_port_1_destination_port = (__1to1 ? 1 : ( __1to2 ? 2 : (__1to3 ? 3 : (__1to4 ? 4 : -1))));
 	
 	tb_config.input_port_2_active = (__2to1 || __2to2 ||__2to3 ||__2to4|| __2toall || __alltoall);
@@ -343,7 +386,9 @@ int main(int argc, char* argv[])
 
 	// 
 	// start the receivers
-	// 
+	//
+	
+	// Now starting the reciever threads
 	PTHREAD_DECL(output_port_1_receiver);
 	PTHREAD_CREATE(output_port_1_receiver);
 
@@ -357,6 +402,8 @@ int main(int argc, char* argv[])
 	PTHREAD_CREATE(output_port_4_receiver);
 
 	// start the senders.
+	
+	// Now starting the sender threads
 	PTHREAD_DECL(input_port_1_sender);
 	PTHREAD_CREATE(input_port_1_sender);
 
@@ -370,12 +417,13 @@ int main(int argc, char* argv[])
 	PTHREAD_CREATE(input_port_4_sender);
 	
 
-	// wait on the four output threads
+	// Wait on the four output threads
 	PTHREAD_JOIN(output_port_1_receiver);
 	PTHREAD_JOIN(output_port_2_receiver);
 	PTHREAD_JOIN(output_port_3_receiver);
 	PTHREAD_JOIN(output_port_4_receiver);
 
+	// setting the error flag if any error is recieved 
 	if(__err_flag__)
 	{
 		fprintf(stderr,"\nFAILURE.. there were errors\n");
