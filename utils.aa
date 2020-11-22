@@ -1,13 +1,29 @@
-$volatile $module [prioritySelect]
+// Declaring the ROUND ROBIN priority select module for selecting the priority of the packet.
+$volatile $module [roundrobin_prioritySelect]
 	$in (down_counter: $uint<8> active_packet: $uint<3>
 			priority: $uint<3>  p1_valid p2_valid p3_valid p4_valid: $uint<1>)
 	$out (next_active_packet: $uint<3> next_priority: $uint<3>)
 $is
-//
-// if down_counter is 0, then it is time to decide which should be
-// the new active packet.
+
 {
+	// CHecking if the counter is zero to start a new packet
 	d0 := (down_counter == 0)
+	
+	// Selecting the packet to send data to the output if the counter is zero and 
+	// we need to start a new packet if there is a valid bit to send 
+	// data to that patricular location.
+	
+	// The procedure to select the locationfor the future 
+	// for the data will be sent from which packet, is 
+	// decided after checking the conditions in the order given below :
+	// 1. Check if the counter is zero,
+	// 2. If the input at the signal is valid, 
+	// 3. Check if the current packet still has the priority,
+	// 4. If the packet does not have the priority then check if all others don't
+	//      have the valid input,
+	// 5. Check if the packet at the previous transaction had the priority to switch
+	//	to and if it is not valid, 
+	// 6. Check if the prior to previous has the priority and isn't valid now.
 	select_1 := ($reduce &
 			d0
 			p1_valid
@@ -47,6 +63,7 @@ $is
 			( $reduce & (~p3_valid) (priority == 3))
 			( $reduce & (~p2_valid) (~p3_valid) (priority == 2))))
 
+	// Now, deciding which packet will be selected for the next transaction.
 	next_active_packet := ($excmux
 					(~d0)	active_packet
 					select_1 1
@@ -54,10 +71,11 @@ $is
 					select_3 3
 					select_4 4
 				)
-
+				
+	// Now reporting the status at the ouptut.
 	//$rreport ( ##OUTPUTPORTDAEMON RUN_1 d0 select_1 select_2 select_3 select_4 priority p1_valid p2_valid p3_valid p4_valid active_packet next_active_packet)
 
-
+	// Now applying the ROUND ROBIN method and rotating the priority
 	next_priority_temp := ($excmux
 					select_1 2
 					select_2 3
@@ -65,7 +83,9 @@ $is
 					select_4 1
 				)
 
-	// priority rotates on every selection.
+	// Now deciding to chandge the priority or continue with the ongoing one
+	// Because if the current transaction is not over and the counter is not 
+	// zero the we don't need to change the current priority
 	next_priority := ($mux ($reduce |
 							select_1
 							select_2
